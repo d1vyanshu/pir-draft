@@ -140,6 +140,122 @@ void prg_eval_all_and_xor(dpf_layer *dpfl, block *keynodes) {
     dpfl->level += 1;
 };
 
+std::pair<dpfxor_key, dpfxor_key> dpfxor_keygen_local(int height, dpf_input_pack * dpfip) {
+    auto keys = prng.get<std::array<block, 2>>();
+    
+    #ifdef DPF_PROFILE_
+    printf("START DPF LEVEL 0 %d\n", current_timestamp());
+#endif
+    
+    //Initialize keys
+    dpfxor_key *key0 = new dpfxor_key;
+    dpfxor_key *key1 = new dpfxor_key;
+    key0->height = height;
+    key1->height = height;
+    key0->Bout = 1;
+    key1->Bout = 1;
+    block* hats = (block*) malloc (2*sizeof(block));
+    uint8_t* hatt = (uint8_t*) malloc(2*sizeof(uint8_t));
+
+    key0->s = keys[0];
+    hats[0] = keys[0];
+    key0->t = 0;
+    hatt[0] = 0;
+
+    key1->s = keys[1];
+    hats[1] = keys[1];
+    key1->t = 1;
+    hatt[1] = 1;
+    key0->sigma = (block*)malloc((height-7)*sizeof(block));
+    key0->tau0 = (uint8_t*)malloc((height-7)*sizeof(uint8_t));
+    key0->tau1 = (uint8_t*)malloc((height-7)*sizeof(uint8_t));
+
+    key1->sigma = (block*)malloc((height-7)*sizeof(block));
+    key1->tau0 = (uint8_t*)malloc((height-7)*sizeof(uint8_t));
+    key1->tau1 = (uint8_t*)malloc((height-7)*sizeof(uint8_t));
+
+    static const block ZeroBlock = toBlock(0, 0);
+        static const block OneBlock = toBlock(0, 1);
+        static const block TwoBlock = toBlock(0, 2);
+        static const block ThreeBlock = toBlock(0, 3);
+        const static block ptt[4] = {ZeroBlock, OneBlock, TwoBlock, ThreeBlock};
+    uint8_t sig;
+    for(int i=0; i<height-7; i++) {
+        
+        block ctt[4];
+        block s[2][2];
+        uint8_t t[2][2];
+
+        AES aes_ak0(hats[0]);
+        AES aes_ak1(hats[1]);
+
+            // encrypt
+        aes_ak0.ecbEncFourBlocks(ptt, ctt);
+        s[0][0] = ctt[0];
+        s[0][1] = ctt[2];
+        t[0][0] = lsb(ctt[1]);
+        t[0][1] = lsb(ctt[3]);
+
+
+            // encrypt
+        aes_ak1.ecbEncFourBlocks(ptt, ctt);
+        s[1][0] = ctt[0];
+        s[1][1] = ctt[2];
+        t[1][0] = lsb(ctt[1]);
+        t[1][1]= lsb(ctt[3]);
+
+        sig = (((dpfip->index).value >> (height - 1 - i)) & 1);
+        // std::cout<<"i "<<i<<" sig "<<(int)sig<<"\n";
+        (key0->sigma)[i] =  s[0][1^sig] ^ s[1][1^sig];
+        (key1->sigma)[i] = s[0][1^sig] ^ s[1][1^sig];
+        (key0->tau0)[i] = t[0][0] ^ t[1][0] ^ sig ^ 1;
+        (key0->tau1)[i] = t[0][1] ^ t[1][1] ^ sig;
+        (key1->tau0)[i] = t[0][0] ^ t[1][0] ^ sig ^ 1;
+        (key1->tau1)[i] = t[0][1] ^ t[1][1] ^ sig;
+
+        if(hatt[0]) {
+            hats[0] = s[0][sig] ^ (key0->sigma)[i];
+            if(sig)
+                hatt[0] = t[0][1] ^ (key0->tau1)[i];
+            else hatt[0] = t[0][0] ^ (key0->tau0)[i];
+        }
+        else {
+            hats[0] = s[0][sig];
+            hatt[0] = t[0][sig];
+        }
+
+        if(hatt[1]) {
+            hats[1] = s[1][sig] ^ (key1->sigma)[i];
+            if(sig)
+                hatt[1] = t[1][1] ^ (key1->tau1)[i];
+            else hatt[1] = t[1][0] ^ (key1->tau0)[i];
+        }
+        else {
+            hats[1] = s[1][sig];
+            hatt[1] = t[1][sig];
+        }
+
+        // std::cout<<"i "<<i<<" "<<(int)hatt[0]<<" "<<(int)hatt[1]<<"\n";
+    }
+        // std::cout<<"Level 1"<<hats[0]<<" "<<hats[1]<<" "<<(int)hatt[0]<<" "<<(int)hatt[1]<<"\n";
+
+    uint8_t lastind = (dpfip->index).value & ((1 << 7) - 1);
+
+    uint8_t flag=0;
+    if(lastind>=64) flag = 1;
+    lastind = lastind & ((1<<6)-1);
+
+    block last;
+    if(flag) last = toBlock(1, 0);
+    else last = toBlock(0, 1);
+    last = last << lastind;
+    // std::cout<<(int)lastind<<" "<<last<<" \n";
+
+    key0->gamma = hats[0] ^ hats[1] ^ last;
+    key1->gamma = hats[0] ^ hats[1] ^ last;
+     return std::pair<dpfxor_key, dpfxor_key> (*key0, *key1);
+
+}
 
 
 std::pair<dpf_key, dpf_key> dpf_keygen(int height, const int group_bitwidth, dpf_input_pack **dpfip, input_check_pack_2 *ip2)
@@ -399,6 +515,65 @@ std::pair<dpf_key, dpf_key> dpf_keygen(int height, const int group_bitwidth, dpf
     return std::pair<dpf_key, dpf_key>(*key0, *key1);
 };
 
+uint8_t dpfxor_eval(int party, GroupElement idx, const dpfxor_key &key) {
+    uint8_t hatt = party;
+    block hats = key.s;
+
+    //Set plaintext
+        static const block ZeroBlock = toBlock(0, 0);
+        static const block OneBlock = toBlock(0, 1);
+        static const block TwoBlock = toBlock(0, 2);
+        static const block ThreeBlock = toBlock(0, 3);
+        const static block ptt[4] = {ZeroBlock, OneBlock, TwoBlock, ThreeBlock};
+        block ctt[4];
+    
+    for(int i=0; i<key.height-7; i++) {
+        AES aes_key(hats);
+
+        aes_key.ecbEncFourBlocks(ptt, ctt);
+        uint8_t sig = ((idx.value >> (key.height - 1 - i)) & 1);
+        // std::cout<<"party: "<<party<<" i: "<<i<<" sig "<<(int)sig<<"\n";
+        block s = ctt[2*sig];
+        uint8_t t = lsb(ctt[2*sig+1]);
+        uint8_t tau = (sig == 0)?(key.tau0)[i]:(key.tau1)[i];
+        if(hatt==1) {
+            hats = s ^ (key.sigma)[i];
+            hatt = t ^ tau;
+        }
+        else {
+            hats = s;
+            hatt = t;
+        }
+        // std::cout<<"i: "<<i<<" hatt "<<(int)hatt<<"\n";
+    }
+
+    // std::cout<<int(hatt)<<"\n";
+    // std::cout<<hats<<"\n\n";
+
+    if(hatt)
+        hats = hats ^ (key.gamma);
+    // std::cout<<"After adding gamma: "<<hats<<"\n";
+
+    uint64_t ms64 =(uint64_t)_mm_extract_epi64(hats, 1);
+    uint64_t ls64 = (uint64_t)_mm_extract_epi64(hats, 0);
+    // if(idx.value == 5 || idx.value == 69)
+    // std::cout<<ms64<<" "<<ls64<<"\n";
+    uint8_t lastind = idx.value & ((1<<7)-1);
+    // uint8_t flag = 0;
+    uint8_t out;
+    if(lastind >= 64) {
+        lastind = lastind & (1<<6-1);
+        out = (ms64>>lastind)%2; 
+    }
+    else out = (ls64>>lastind)%2;
+
+
+    // uint8_t out = lsb(hats>>lastind);
+
+    return out;
+
+}
+
 GroupElement* dpf_eval(int party, GroupElement idx, const dpf_key &key) {
     uint8_t hatt = party;
     block hats = key.s;
@@ -643,3 +818,74 @@ GroupElement compute_hato(int database_size, GroupElement rotated_index, GroupEl
 };
 
 
+
+//Modified DPFxor
+// dpfxor_key dpfxor_keygen()
+// block* dpf_eval_all_modified(int party, const dpf_key &key, input_check_pack *icp, uint8_t *t) {
+//     icp->size = key.height;
+//     //Intialize dpf layer
+//     dpf_layer* dpfl = (dpf_layer*)malloc(sizeof(dpf_layer));
+//     dpfl->size = 1;
+//     dpfl->level = 0;
+//     dpfl->nodes = NULL;
+//     dpfl->currt = NULL;
+//     dpfl->prevt = NULL;
+//     block* hats = (block*)malloc(sizeof(block));
+//     hats[0] = key.s;
+//     uint8_t* hatt = (uint8_t*)malloc(sizeof(uint8_t));
+//     hatt[0] = party;
+
+//     icp->zs[0] = (block*)malloc(key.height*sizeof(block));
+//     icp->zs[1] = (block*)malloc(key.height*sizeof(block));
+//     icp->zt[0] = (uint8_t*)malloc(key.height*sizeof(uint8_t));
+//     icp->zt[1] = (uint8_t*)malloc(key.height*sizeof(uint8_t));
+//     icp->sigma = (block*)malloc(key.height*sizeof(block));
+//     icp->tau[0] = (uint8_t*)malloc(key.height*sizeof(uint8_t));
+//     icp->tau[1] = (uint8_t*)malloc(key.height*sizeof(uint8_t));
+
+
+//     for(int i=0; i<key.height-7; i++) {
+//         prg_eval_all_and_xor(dpfl, hats);
+//         icp->sigma[i] = (key.sigma)[i];
+//         icp->tau[0][i] = (key.tau0)[i];
+//         icp->tau[1][i] = (key.tau1)[i];
+
+//         icp->zs[0][i] = dpfl->zs[0];
+//         icp->zs[1][i] = dpfl->zs[1];
+//         icp->zt[0][i] = dpfl->zt[0];
+//         icp->zt[1][i] = dpfl->zt[1];
+
+//         dpfl->prevt = hatt;
+//         free(hats);
+//         hats = (block*) malloc(dpfl->size*sizeof(block));
+//         hatt = (uint8_t*)malloc(dpfl->size*sizeof(uint8_t));
+        
+
+//         #pragma omp parallel for schedule(static, 1) num_threads(nt)
+//         for(size_t j=0; j<dpfl->size; j++) {
+//             uint8_t tau = (j%2==0)?(key.tau0)[i]:(key.tau1)[i];
+
+//             if(dpfl->prevt[j/2]==1){
+//                 hats[j] = dpfl->nodes[j] ^ (key.sigma)[i];
+//                 hatt[j] = dpfl->currt[j] ^ tau;
+//             }
+//             else {
+//             hats[j] = dpfl->nodes[j];
+//             hatt[j] = dpfl->currt[j];
+//             }
+//         }
+//     }
+
+//     block* out = (block*)malloc(dpfl->size*sizeof(block));
+
+//     for(size_t j = 0; j<dpfl->size; j++) {
+//         if(hatt[j])
+//         out[j] = hats[j] ^ (key.W);
+//         else out[j] = hats[j];
+//     }
+    
+//     free(hats);
+//     free(hatt);
+//     free_dpf_layer(dpfl);
+//     return out;
+// };

@@ -55,3 +55,10 @@ std::pair<GroupElement, GroupElement> inner_prod(int database_size, GroupElement
 GroupElement compute_hato(int database_size, GroupElement rotated_index, GroupElement *db, GroupElement **out, int p);
 
 std::pair<GroupElement*, GroupElement*> compute_inner_prod_Zp(int database_size, GroupElement rotated_index, GroupElement **db, GroupElement **out, int blocks, int p);
+
+std::pair<dpfxor_key, dpfxor_key> dpfxor_keygen_local(int height, dpf_input_pack * dpfip);
+uint8_t dpfxor_eval(int party, GroupElement idx, const dpfxor_key &key);
+// std::pair<dpf_key, dpf_key> dpf_keygen_modified(int height, const int group_bitwidth, dpf_input_pack **dpfip, input_check_pack_2 *ip2);
+
+// block* dpf_eval_all_modified(int party, const dpf_key &key, input_check_pack *icp, uint8_t *t);
+

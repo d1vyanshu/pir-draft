@@ -29,37 +29,48 @@ std::string uint128ToString(const __uint128_t& value)
 }
 
 int main() {
-    prng.SetSeed(toBlock(0, 0), sizeof(block));
+    // prng.SetSeed(toBlock(0, 0), sizeof(block));
     int Bin = 20;
     int Bout = 40;
-    int database_size = (1<<Bin);
-    int entry_size = 8192;
-    bitlength = Bout;
-    int blocks;
-    if(entry_size%bitlength != 0) blocks = entry_size/bitlength + 1;
-    else blocks = entry_size/bitlength;
-    std::cout<<blocks<<"\n";
-    //Populating database.
-    GroupElement **database = (GroupElement**)malloc(blocks*sizeof(GroupElement*));
-    for(int i=0; i<blocks; i++) {
-        database[i] = (GroupElement*)malloc(database_size*sizeof(GroupElement));
-        for(int j=0; j<database_size; j++) {
-            database[i][j] = random_ge(bitlength);
-            // std::cout<<database[i][j].value<<" ";
-        }
-        // std::cout<<"\n\n\n\n";
-    }
+    // int database_size = (1<<Bin);
+    // int entry_size = 8192;
+    // bitlength = Bout;
+    // int blocks;
+    // if(entry_size%bitlength != 0) blocks = entry_size/bitlength + 1;
+    // else blocks = entry_size/bitlength;
+    // std::cout<<blocks<<"\n";
+    // //Populating database.
+    // GroupElement **database = (GroupElement**)malloc(blocks*sizeof(GroupElement*));
+    // for(int i=0; i<blocks; i++) {
+    //     database[i] = (GroupElement*)malloc(database_size*sizeof(GroupElement));
+    //     for(int j=0; j<database_size; j++) {
+    //         database[i][j] = random_ge(bitlength);
+    //         // std::cout<<database[i][j].value<<" ";
+    //     }
+    //     // std::cout<<"\n\n\n\n";
+    // }
 
     // std::cout<<database[2][0].value<<" "<<database[2][1].value<<"\n";
 
-    std::cout<<"----------------Running Key Gen-----------------\n";
+    uint64_t a = 130;
+    // std::cout<<((1<<7)-1)<<"\n";
+    // std::cout<<(130 & 127)<<"\n";
+    uint64_t amod = a & ((1<<7) - 1); 
+    std::cout<<amod<<"\n";
+    block test = toBlock(0, amod);
+    std::cout<<test<<"\n";
+    uint8_t* temp = (uint8_t*) &test;
+    std::cout<<temp[15]<<"\n";
+    // uint8_t* val = (uint8_t*)malloc(128*sizeof(uint8_t));
+
+    std::cout<<"----------------Running Key Gen DPF+-----------------\n";
     prng.SetSeed(toBlock(0, 0), sizeof(block));
 
     
     dpf_input_pack *dpfip[2];
     dpfip[0] = (dpf_input_pack*)malloc(sizeof(dpf_input_pack));
     dpfip[1] = (dpf_input_pack*)malloc(sizeof(dpf_input_pack));
-    dpfip[0]->index = GroupElement(0, Bin);
+    dpfip[0]->index = GroupElement(19560, Bin);
     dpfip[1]->index = GroupElement(2, Bin);
     dpfip[0]->alpha = (GroupElement*)malloc(sizeof(GroupElement));
     dpfip[0]->alpha[0] = GroupElement(2, Bout);
@@ -71,53 +82,135 @@ int main() {
     std::tie(k0, k1) = dpf_keygen(Bin, Bout, dpfip, &ip2);
     auto end  = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
+    std::cout<<"Time taken for keygen DPF+ "<<duration.count()*1e-6<<"\n";
 
-    std::cout<<"--------------------Running Eval All-------------\n";
-    GroupElement **t_vec_0, **t_vec_1;
-    input_check_pack icp0, icp1;
-    icp0.index = (ip2.index)[0];
-    icp1.index = (ip2.index)[1];
-    icp0.payload = (ip2.payload)[0];
-    icp1.payload = (ip2.payload)[1];
-    uint8_t *t0, *t1;
-    t0 = (uint8_t*)malloc((1<<Bin)*sizeof(uint8_t));
-    t1 = (uint8_t*)malloc((1<<Bin)*sizeof(uint8_t));
+
+    std::cout<<"----------------Running Key Gen DPFxor-----------------\n";
+    prng.SetSeed(toBlock(0, 0), sizeof(block));
+
+    
+    dpf_input_pack* dpfip2;
+    dpfip2 = (dpf_input_pack*)malloc(sizeof(dpf_input_pack));
+    // dpfip = (dpf_input_pack*)malloc(sizeof(dpf_input_pack));
+    dpfip2->index = GroupElement(195602, Bin);
+    // dpfip[1]->index = GroupElement(2, Bin);
+    // dpfip[0]->alpha = (GroupElement*)malloc(sizeof(GroupElement));
+    // dpfip[0]->alpha[0] = GroupElement(2, Bout);
+    // dpfip[1]->alpha = (GroupElement*)malloc(sizeof(GroupElement));
+    // dpfip[1]->alpha[0] = GroupElement(10, Bout);
+    // input_check_pack_2 ip2;
+    dpfxor_key key0, key1;
     start = std::chrono::high_resolution_clock::now();
-    t_vec_0 = dpf_eval_all(0, k0, &icp0, t0);
+    std::tie(key0, key1) = dpfxor_keygen_local(Bin,dpfip2);
     end  = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
-    t_vec_1 = dpf_eval_all(1, k1, &icp1, t1);
+    std::cout<<"Time taken for keygen DPFxor "<<duration.count()*1e-6<<"\n";
 
-    for(int i=0; i<(1<<Bin); i++) {
-        if((t_vec_0[i][0]+t_vec_1[i][0]).value != 0 || (t_vec_0[i][1]+t_vec_1[i][1]).value != 0) {
-           std::cout<<i<<"\n";
-           std::cout<<(t_vec_0[i][0] + t_vec_1[i][0]).value<<" "<<(t_vec_0[i][1] + t_vec_1[i][1]).value<<"\n";
-        }
-        if(t0[i]^t1[i]) std::cout<<"this "<<i<<"\n";
+    // int i = 14;
+    // int flag = 0;
+    // if (i >= 64)
+    //     flag = 1;
+    // int imod = i & ((1<<6)-1);
 
-    }
+    // block t;
+    // // i = 35;
+    // // t = toBlock(0, 1);
+    // // t = t<< i;
+    // // std::cout<<t<<"\n";
+    
+    // if(flag)
+    //     t = toBlock(1, 0);
+    // else t = toBlock(0, 1);
+    // // std::cout<<i<<"\n";
+    // // // block t = toBlock(0, 1);
+    // // std::cout<<t<<"\n";
+    // t = t<<imod;
+    // // t = toBlock(0, 1); 
+    // std::cout<<t<<"\n";
+    // // char* x = (char*) t;
+    // // std::cout<<(int(x))<<"\n";
+    // uint64_t x = (uint64_t)_mm_extract_epi64(t, 0);
+    // std::cout<<x<<"\n";
 
-    //Computing output now differently.
-    GroupElement *o0, *o1, *hato0, *hato1;
-    // GroupElement to0, to1, hatto0, hatto1;
+    // std::cout<<(x>> imod)%2;
+
+    // int fetch  = 2;
+    // block t1 = _mm_shuffle_epi8(t,_mm_set1_epi8(fetch));
+    // std::cout<<t1<<"\n";
+    // const int fetch = i/16;
+    // uint16_t x = (uint16_t)_mm_extract_epi16(t, fetch);
+    // std::cout<<x<<"\n";
+    // char x = t[];
+    // std::cout<<(int)x<<"\n";
+
+    // std::cout<<t<<"\n";
+
+    
+    std::cout<<"-------Running Eval All---------\n";
+    uint8_t out0, out1;
+    // out0 = dpfxor_eval(0, 5, k0);
+    // out1 = dpfxor_eval(1, 5, k1);
+    // std::cout<<(int)out0<<" "<<(int)out1<<"\n";
     start = std::chrono::high_resolution_clock::now();
-    std::tie(o0, hato0) = compute_inner_prod_Zp(database_size, GroupElement(0, Bin), database, t_vec_0, blocks, 0);
-    end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
-    std::cout<<"Time taken for parsing "<<duration.count()*1e-6<<"\n";
-    std::tie(o1, hato1) = compute_inner_prod_Zp(database_size, GroupElement(0, Bin), database, t_vec_1, blocks, 1);
+    for(int i=0; i<(1<<Bin); i++) {
+        out0 = dpfxor_eval(0, i, key0);
+        out1 = dpfxor_eval(1, i, key1);
 
-    // for(int i=0; i<blocks; i++) {
-    //     std::cout<<i<<" "<<(o0[i]+o1[i]).value<<" "<<(hato0[i] + hato1[i]).value<<"\n";
-    // }
-    // std::cout<<"\n\n\n";
-    bool check = 1;
-    for(int j=0; j<blocks; j++) {
-        check &= (((__uint128_t)(icp0.payload + icp1.payload).value * (o0[j] + o1[j]).value & ((uint64_t(1) << bitlength) - 1)) == (hato0[j] + hato1[j]).value);
-        // std::cout<<i<<" "<<check<<"\n";
+    //     if(out0 ^ out1)
+    //         std::cout<<i<<"\n";
     }
+    end  = std::chrono::high_resolution_clock::now();
+    duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
+    std::cout<<"Time taken for evalall DPFxor "<<duration.count()*1e-6<<"\n";
 
-    std::cout<<check<<"\n";
+
+
+    // std::cout<<"--------------------Running Eval All-------------\n";
+    // GroupElement **t_vec_0, **t_vec_1;
+    // input_check_pack icp0, icp1;
+    // icp0.index = (ip2.index)[0];
+    // icp1.index = (ip2.index)[1];
+    // icp0.payload = (ip2.payload)[0];
+    // icp1.payload = (ip2.payload)[1];
+    // uint8_t *t0, *t1;
+    // t0 = (uint8_t*)malloc((1<<Bin)*sizeof(uint8_t));
+    // t1 = (uint8_t*)malloc((1<<Bin)*sizeof(uint8_t));
+    // start = std::chrono::high_resolution_clock::now();
+    // t_vec_0 = dpf_eval_all(0, k0, &icp0, t0);
+    // end  = std::chrono::high_resolution_clock::now();
+    // duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
+    // t_vec_1 = dpf_eval_all(1, k1, &icp1, t1);
+
+    // for(int i=0; i<(1<<Bin); i++) {
+    //     if((t_vec_0[i][0]+t_vec_1[i][0]).value != 0 || (t_vec_0[i][1]+t_vec_1[i][1]).value != 0) {
+    //        std::cout<<i<<"\n";
+    //        std::cout<<(t_vec_0[i][0] + t_vec_1[i][0]).value<<" "<<(t_vec_0[i][1] + t_vec_1[i][1]).value<<"\n";
+    //     }
+    //     if(t0[i]^t1[i]) std::cout<<"this "<<i<<"\n";
+
+    // }
+
+    // //Computing output now differently.
+    // GroupElement *o0, *o1, *hato0, *hato1;
+    // // GroupElement to0, to1, hatto0, hatto1;
+    // start = std::chrono::high_resolution_clock::now();
+    // std::tie(o0, hato0) = compute_inner_prod_Zp(database_size, GroupElement(0, Bin), database, t_vec_0, blocks, 0);
+    // end = std::chrono::high_resolution_clock::now();
+    // duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
+    // std::cout<<"Time taken for parsing "<<duration.count()*1e-6<<"\n";
+    // std::tie(o1, hato1) = compute_inner_prod_Zp(database_size, GroupElement(0, Bin), database, t_vec_1, blocks, 1);
+
+    // // for(int i=0; i<blocks; i++) {
+    // //     std::cout<<i<<" "<<(o0[i]+o1[i]).value<<" "<<(hato0[i] + hato1[i]).value<<"\n";
+    // // }
+    // // std::cout<<"\n\n\n";
+    // bool check = 1;
+    // for(int j=0; j<blocks; j++) {
+    //     check &= (((__uint128_t)(icp0.payload + icp1.payload).value * (o0[j] + o1[j]).value & ((uint64_t(1) << bitlength) - 1)) == (hato0[j] + hato1[j]).value);
+    //     // std::cout<<i<<" "<<check<<"\n";
+    // }
+
+    // std::cout<<check<<"\n";
     //Output lies in xors. We build that first.
     // GroupElement hato0, hato1;
     // NTL::GF2E o0, o1, dbout;

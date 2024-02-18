@@ -13,6 +13,7 @@ struct dpf_key {
     uint8_t *tau0;
     uint8_t *tau1;
     GroupElement *gamma;
+    block W;
 
     dpf_key() {}
     dpf_key(int height, int Bout,
@@ -32,12 +33,45 @@ struct dpf_key {
                 gamma(gamma)
             {};
 };
-
 inline void free_dpf_key(dpf_key &key){
     delete[] key.sigma;
     delete[] key.tau0;
     delete[] key.tau1;
     delete[] key.gamma;
+}
+
+struct dpfxor_key {
+    int height, Bout;
+    block s;
+    uint8_t t;
+    block *sigma;
+    uint8_t *tau0;
+    uint8_t *tau1;
+    block gamma;
+
+    dpfxor_key() {}
+    dpfxor_key(int height, int Bout,
+           block s,
+           uint8_t t,
+           block *sigma,
+           uint8_t *tau0,
+           uint8_t *tau1,
+           block gamma) : 
+                height(height), 
+                Bout(Bout), 
+                s(s), 
+                t(t), 
+                sigma(sigma), 
+                tau0(tau0), 
+                tau1(tau1),
+                gamma(gamma)
+            {};
+};
+
+inline void free_dpfxor_key(dpfxor_key &key){
+    delete[] key.sigma;
+    delete[] key.tau0;
+    delete[] key.tau1;
 }
 
 struct input_check_pack {
@@ -94,6 +128,6 @@ inline void free_input_check_pack_2(input_check_pack_2 &icp) {
     delete[] icp.tau[1];
     delete[] icp.payload;
     delete[] icp.index;
-}
+};
 
 bool check_xor(int bw, input_check_pack x0, input_check_pack x1, input_check_pack_2 x2);
