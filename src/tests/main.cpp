@@ -146,24 +146,37 @@ int main() {
     // std::cout<<t<<"\n";
 
     
-    std::cout<<"-------Running Eval All---------\n";
-    uint8_t out0, out1;
-    // out0 = dpfxor_eval(0, 5, k0);
-    // out1 = dpfxor_eval(1, 5, k1);
-    // std::cout<<(int)out0<<" "<<(int)out1<<"\n";
-    start = std::chrono::high_resolution_clock::now();
-    for(int i=0; i<(1<<Bin); i++) {
-        out0 = dpfxor_eval(0, i, key0);
-        out1 = dpfxor_eval(1, i, key1);
+    // std::cout<<"-------Running Eval---------\n";
+    // uint8_t out0, out1;
+    // // out0 = dpfxor_eval(0, 5, k0);
+    // // out1 = dpfxor_eval(1, 5, k1);
+    // // std::cout<<(int)out0<<" "<<(int)out1<<"\n";
+    // start = std::chrono::high_resolution_clock::now();
+    // for(int i=0; i<(1<<Bin); i++) {
+    //     out0 = dpfxor_eval(0, i, key0);
+    //     out1 = dpfxor_eval(1, i, key1);
 
-    //     if(out0 ^ out1)
-    //         std::cout<<i<<"\n";
-    }
+    // //     if(out0 ^ out1)
+    // //         std::cout<<i<<"\n";
+    // }
+    // end  = std::chrono::high_resolution_clock::now();
+    // duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
+    // std::cout<<"Time taken for evalall DPFxor "<<duration.count()*1e-6<<"\n";
+
+    std::cout<<"---------Running EvalAll----------\n";
+    uint8_t *out0, *out1;
+    out0 = (uint8_t*) malloc((1<<Bin)*sizeof(uint8_t));
+    out1 = (uint8_t*)malloc((1<<Bin)*sizeof(uint8_t));
+    start = std::chrono::high_resolution_clock::now();
+
+    out0 = dpfxor_eval_all(0, key0);
+    out1 = dpfxor_eval_all(1, key1);
     end  = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
     std::cout<<"Time taken for evalall DPFxor "<<duration.count()*1e-6<<"\n";
-
-
+    for(int i=0; i< (1<<Bin); i++) {
+        if(out0[i] ^ out1[i]) std::cout<<"i "<<i<<"\n";
+    }
 
     // std::cout<<"--------------------Running Eval All-------------\n";
     // GroupElement **t_vec_0, **t_vec_1;

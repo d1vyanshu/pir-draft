@@ -630,6 +630,67 @@ GroupElement* dpf_eval(int party, GroupElement idx, const dpf_key &key) {
     return out;
 };
 
+uint8_t* dpfxor_eval_all(int party, const dpfxor_key &key) {
+    dpf_layer* dpfl = (dpf_layer*)malloc(sizeof(dpf_layer));
+    dpfl->size = 1;
+    dpfl->level = 0;
+    dpfl->nodes = NULL;
+    dpfl->currt = NULL;
+    dpfl->prevt = NULL;
+    block* hats = (block*)malloc(sizeof(block));
+    hats[0] = key.s;
+    uint8_t* hatt = (uint8_t*)malloc(sizeof(uint8_t));
+    hatt[0] = party;
+
+    for(int i=0; i<key.height-7; i++) {
+        prg_eval_all_and_xor(dpfl, hats);
+        dpfl->prevt = hatt;
+
+        free(hats);
+
+        hats = (block*) malloc(dpfl->size*sizeof(block));
+        hatt = (uint8_t*)malloc(dpfl->size*sizeof(uint8_t));
+
+        #pragma omp parallel for schedule(static, 1) num_threads(nt)
+        for(size_t j=0; j<dpfl->size; j++) {
+            uint8_t tau = (j%2==0)?(key.tau0)[i]:(key.tau1)[i];
+
+            if(dpfl->prevt[j/2]==1){
+                hats[j] = dpfl->nodes[j] ^ (key.sigma)[i];
+                hatt[j] = dpfl->currt[j] ^ tau;
+            }
+            else {
+            hats[j] = dpfl->nodes[j];
+            hatt[j] = dpfl->currt[j];
+            }
+        }
+
+    }
+
+    uint8_t* out = (uint8_t*)malloc(dpfl->size*(1<<7)*sizeof(uint8_t));
+
+    #pragma omp parallel for schedule(static, 1) num_threads(nt)
+    for(int i=0; i<dpfl->size; i++) {
+        if(hatt[i])
+            hats[i] = hats[i] ^ key.gamma;
+        
+        uint64_t ms64 =(uint64_t)_mm_extract_epi64(hats[i], 1);
+        uint64_t ls64 = (uint64_t)_mm_extract_epi64(hats[i], 0);
+
+        for(int j=0; j<64; j++) {
+            out[(i<<7)+64+j] = (ms64>>j)%2;
+            out[(i<<7) + j] = (ls64>>j)%2;
+        } 
+
+    }
+    free(hats);
+    free(hatt);
+    free_dpf_layer(dpfl);
+    return out;
+
+
+
+}
 GroupElement** dpf_eval_all(int party, const dpf_key &key, input_check_pack *icp, uint8_t *t) {
     icp->size = key.height;
     //Intialize dpf layer
@@ -683,6 +744,7 @@ GroupElement** dpf_eval_all(int party, const dpf_key &key, input_check_pack *icp
             hatt[j] = dpfl->currt[j];
             }
         }
+        
     }
 
 
