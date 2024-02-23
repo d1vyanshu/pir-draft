@@ -97,6 +97,11 @@ int main() {
 
         free_dpfxor_key(k1);
     }
+
+    // uint8_t open[t];
+    // for(int i=0; i<t; i++)
+    //     open[i] = p1.recv_uint8(2);
+
     if(database != NULL) free(database);
     if(databaseB != NULL) {
         for(int i=0; i<block; i++)

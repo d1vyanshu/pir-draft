@@ -37,7 +37,7 @@ int main() {
         }
     }
 
-    std::cout<<database[1100].value<<"\n";
+    // std::cout<<database[1100].value<<"\n";
     // for(int i=)
     // std::cout<<"Here\n";
     // std::ofstream myfile("db.txt");
@@ -45,7 +45,7 @@ int main() {
     //                 myfile<<databaseB[i][1046].value<<std::endl;
     // myfile.close();
     // std::cout<<"Here\n";
-    // std::cout<<"database D[i] "<<databaseB[0][1046].value<<" "<<databaseB[1][1046].value<<" "<<databaseB[2][1046].value<<"\n";
+    // std::cout<<"database D[i] "<<databaseB[0][1100].value<<" "<<databaseB[1][1100].value<<" "<<databaseB[2][1100].value<<"\n";
     auto end2 = std::chrono::high_resolution_clock::now();
     auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(end2-start2);
     // std::cout<<duration2.count()*1e-6<<'\n';
@@ -106,6 +106,17 @@ int main() {
 
         free_dpfxor_key(k0);
     }
+
+    // uint8_t open[t];
+    // for(int i=0; i<t; i++)
+    //     open[i] = p0.recv_uint8(2);
+    
+    // uint8_t zero = 0;
+    // for(int i=0; i<t; i++) {
+    //     if(open[i] == 0) p0.send_uint8(zero, 2);
+    //     else p0.send_uint8(out)
+    // }
+
     if(database != NULL) free(database);
     if(databaseB != NULL) {
         for(int i=0; i<block; i++)

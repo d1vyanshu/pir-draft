@@ -5,6 +5,7 @@
 #include "server_trusted.h"
 #include <chrono>
 #include<fstream>
+#include <bits/stdc++.h>
 
 
 int main() {
@@ -28,6 +29,7 @@ int main() {
     if(entry_size%bitlength!=0) block = entry_size/bitlength + 1;
     else block = entry_size/bitlength;
 
+    GroupElement out0[t], out1[t], outhash0[t], outhash1[t];
     for(int j=0; j<t; j++) {
         if(j%10 == 0) std::cout<<"Iteration "<<j<<"\n";
         dpf_input_pack* dpfip = new dpf_input_pack;
@@ -86,13 +88,13 @@ int main() {
         // std::cout<<"P2: here\n";
         //Receiving output from P0
         if(entry_size <= bitlength) {
-                GroupElement o0 = p2.recv_ge(bitlength, 0);
-                GroupElement o1 = p2.recv_ge(bitlength, 1);
+                out0[j] = p2.recv_ge(bitlength, 0);
+                out1[j] = p2.recv_ge(bitlength, 1);
                 // std::cout<<"P2 o0 "<<o0.value<<" o1 "<<o1.value<<"\n";
 
-                uint64_t dbout = o0.value ^ o1.value;
+                // uint64_t dbout = o0.value ^ o1.value;
 
-                if(j == 100) std::cout<<"\nP2: Output: "<<dbout<<" .\n\n";
+                // if(j == 100) std::cout<<"\nP2: Output: "<<dbout<<" .\n\n";
 
         }
         else {
@@ -117,20 +119,39 @@ int main() {
                 }
                 // std::cout<<o0[i]
                 // std::cout<<dbout[0]<<"\n";
-                std::ofstream myfile("output.txt");
-                    for(int i=0; i<block; i++)
-                        myfile<<dbout[i]<<std::endl;
+                if(j==100) {
+                    std::ofstream myfile("output.txt");
+                        for(int i=0; i<block; i++)
+                            myfile<<dbout[i]<<std::endl;
                     myfile.close();
 
-                std::cout<<"\n";       
+                    std::cout<<"\n";
+                }  
                 
         }
 
         
     }
     // std::cout<<"P2: Here also\n";
-    uint8_t temp = 4;
-    p2.send_uint8(temp, 2);
+    std::cout<<(out0[100].value ^ out1[100].value)<<"\n";
+    
+    // uint8_t temp = 4;
+    // p2.send_uint8(temp, 2);
+
+    // uint8_t open[t];
+    // for(int i=0; i<t; i++)
+    //     if(i<75) open[i] = 1;
+    //     else open[i] = 0;
+    
+    // std::shuffle(open, open + t, std::default_random_engine(time(NULL)));
+
+    // for(int i=0; i<10; i++)
+    //     std::cout<<(int)open[i]<<"\n";
+    for(int i=0; i<t; i++) {
+        p2.send_uint8(open[i], 0);
+        p2.send_uint8(open[i], 1);
+    }
+
 
 
     p2.close(0);
