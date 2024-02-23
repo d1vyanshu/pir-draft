@@ -33,17 +33,34 @@ int main() {
     int Bin = 18;
     int Bout = 40;
     int database_size = (1<<Bin);
-    int entry_size = 40;
+    int entry_size = 81;
 
-    GroupElement *database = new GroupElement[database_size];
-    for(int i=0; i<database_size; i++)
-        // database[i] = random_ge(bitlength);
-        database[i] = i;
-    std::cout<<database[5].value<<"\n\n";
-    // bitlength = Bout;
-    // int blocks;
-    // if(entry_size%bitlength != 0) blocks = entry_size/bitlength + 1;
-    // else blocks = entry_size/bitlength;
+    int block;
+    if(entry_size%bitlength!=0) block = entry_size/bitlength + 1;
+    else block = entry_size/bitlength;
+    prng.SetSeed(toBlock(0, 0), sizeof(block));
+    //Creating database for both cases when entry size < 40 bits and 1KB.
+    GroupElement *database = NULL;
+    GroupElement **databaseB = NULL;
+    if(entry_size<= bitlength) {
+        database = new GroupElement[database_size];
+        for(int i=0; i<database_size; i++)
+            database[i] = random_ge(bitlength);
+            // database[i] = i;
+    }
+    else {
+        databaseB = (GroupElement**)malloc(block*sizeof(GroupElement*));
+        for(int i=0; i<block; i++) {
+            databaseB[i] = (GroupElement*)malloc(database_size*sizeof(GroupElement));
+            for(int j=0; j<database_size; j++) {
+                databaseB[i][j] = random_ge(bitlength);
+            }
+
+        }
+    }
+    std::cout<<"database D[i] "<<databaseB[0][1046].value<<" "<<databaseB[1][1046].value<<" "<<"\n";
+    // std::cout<<"database D[i] "<<database[1046].value<<"\n";
+
     // std::cout<<blocks<<"\n";
     // //Populating database.
     // GroupElement **database = (GroupElement**)malloc(blocks*sizeof(GroupElement*));
@@ -98,7 +115,7 @@ int main() {
     dpf_input_pack* dpfip2;
     dpfip2 = (dpf_input_pack*)malloc(sizeof(dpf_input_pack));
     // dpfip = (dpf_input_pack*)malloc(sizeof(dpf_input_pack));
-    dpfip2->index = GroupElement(5, Bin);
+    dpfip2->index = GroupElement(1046, Bin);
     // dpfip[1]->index = GroupElement(2, Bin);
     // dpfip[0]->alpha = (GroupElement*)malloc(sizeof(GroupElement));
     // dpfip[0]->alpha[0] = GroupElement(2, Bout);
@@ -112,25 +129,25 @@ int main() {
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
     std::cout<<"Time taken for keygen DPFxor "<<duration.count()*1e-6<<"\n";
 
-    std::cout<<"P2 key0: s "<<key0.s<<"\n";
+    // std::cout<<"P2 key0: s "<<key0.s<<"\n";
 
-    for(int i=0; i<key0.height-7; i++) {
-        std::cout<<"P2 sigma i "<<i<<" "<<key0.sigma[i]<<"\n";
-        std::cout<<"P2 tau0"<<(int)key0.tau0[i]<<"\n";
-        std::cout<<"P2 tau1"<<(int)key0.tau1[i]<<"\n";
-    }
+    // for(int i=0; i<key0.height-7; i++) {
+    //     std::cout<<"P2 sigma i "<<i<<" "<<key0.sigma[i]<<"\n";
+    //     std::cout<<"P2 tau0"<<(int)key0.tau0[i]<<"\n";
+    //     std::cout<<"P2 tau1"<<(int)key0.tau1[i]<<"\n";
+    // }
 
-    std::cout<<"P2 gamma "<<key0.gamma<<"\n\n\n\n";
+    // std::cout<<"P2 gamma "<<key0.gamma<<"\n\n\n\n";
 
-    std::cout<<"P2 key1: s "<<key1.s<<"\n";
+    // std::cout<<"P2 key1: s "<<key1.s<<"\n";
 
-    for(int i=0; i<key1.height-7; i++) {
-        std::cout<<"P2 sigma i "<<i<<" "<<key1.sigma[i]<<"\n";
-        std::cout<<"P2 tau0"<<(int)key1.tau0[i]<<"\n";
-        std::cout<<"P2 tau1"<<(int)key1.tau1[i]<<"\n";
-    }
+    // for(int i=0; i<key1.height-7; i++) {
+    //     std::cout<<"P2 sigma i "<<i<<" "<<key1.sigma[i]<<"\n";
+    //     std::cout<<"P2 tau0"<<(int)key1.tau0[i]<<"\n";
+    //     std::cout<<"P2 tau1"<<(int)key1.tau1[i]<<"\n";
+    // }
 
-    std::cout<<"P2 gamma "<<key1.gamma<<"\n";
+    // std::cout<<"P2 gamma "<<key1.gamma<<"\n";
 
     // int i = 14;
     // int flag = 0;
@@ -191,8 +208,8 @@ int main() {
 
     std::cout<<"---------Running EvalAll----------\n";
     uint8_t *out0, *out1;
-    out0 = (uint8_t*) malloc((1<<Bin)*sizeof(uint8_t));
-    out1 = (uint8_t*)malloc((1<<Bin)*sizeof(uint8_t));
+    // out0 = (uint8_t*) malloc((1<<Bin)*sizeof(uint8_t));
+    // out1 = (uint8_t*)malloc((1<<Bin)*sizeof(uint8_t));
     start = std::chrono::high_resolution_clock::now();
 
     out0 = dpfxor_eval_all(0, key0);
@@ -200,14 +217,30 @@ int main() {
     end  = std::chrono::high_resolution_clock::now();
     duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
     std::cout<<"Time taken for evalall DPFxor "<<duration.count()*1e-6<<"\n";
+    // uint64_t temp0 = 0, temp1 = 0;
     for(int i=0; i< (1<<Bin); i++) {
+        // if(out0[i]) temp0 = temp0 ^ databaseB[0][i].value;
+        // if(out1[i]) temp1 = temp1 ^database[0][i].value;
         if(out0[i] ^ out1[i]) std::cout<<"i "<<i<<"\n";
     }
 
-    GroupElement t0 = inner_xor(database_size, 0, database, out0);
-    GroupElement t1 = inner_xor(database_size, 0, database, out1);
-    std::cout<<t0.value<<" "<<t1.value<<"\n";
-    std::cout<<(t0.value ^ t1.value) <<"\n";
+    // std::cout<<"temp "<<temp0<<"\n";
+    GroupElement temp0 = inner_xor(database_size, 0, databaseB[0], out0);
+    GroupElement temp1 = inner_xor(database_size, 0, databaseB[0], out1);
+    std::cout<<"temp0 "<<(temp0.value)<<" temp1 "<<(temp1.value)<<"\n";
+    std::cout<<(temp0.value ^ temp1.value)<<"\n";
+    GroupElement *t0 = inner_xor_Zp(database_size, 0, databaseB, out0, block);
+    GroupElement *t1 = inner_xor_Zp(database_size, 0, databaseB, out1, block);
+    std::cout<<"t0 "<<t0[0].value<<" t1 "<<t1[0].value<<"\n";
+    std::cout<<(t0[0].value ^ t1[0].value)<<"\n";
+
+    uint64_t *dbout = (uint64_t*) malloc(block*sizeof(uint64_t));
+    for(int i=0; i<block; i++) {
+        dbout[i] = t0[i].value ^ t1[i].value;
+    }
+
+
+    std::cout<<dbout[0]<<"\n";
 
     // std::cout<<"--------------------Running Eval All-------------\n";
     // GroupElement **t_vec_0, **t_vec_1;

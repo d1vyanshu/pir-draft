@@ -10,7 +10,7 @@ int main() {
     auto start2 = std::chrono::high_resolution_clock::now();
     int input_size = 18;
     int database_size = (1<<input_size);
-    int entry_size = 40;
+    int entry_size = 81;
     int block;
     if(entry_size%bitlength!=0) block = entry_size/bitlength + 1;
     else block = entry_size/bitlength;
@@ -30,13 +30,13 @@ int main() {
             databaseB[i] = (GroupElement*)malloc(database_size*sizeof(GroupElement));
             for(int j=0; j<database_size; j++) {
                 databaseB[i][j] = random_ge(bitlength);
-        }
+            }
 
         }
     }
-
-    std::cout<<"P1: Database value : "<<database[5].value<<"\n";
-
+    // std::cout<<"Here\n";
+    // std::cout<<"database D[i] "<<databaseB[0][1046].value<<" "<<databaseB[1][1046].value<<" "<<databaseB[2][1046].value<<"\n";
+    // std::cout<<"here2\n";
     auto end2 = std::chrono::high_resolution_clock::now();
     auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(end2-start2);
     std::cout<<duration2.count()*1e-6<<'\n';
@@ -62,9 +62,9 @@ int main() {
 
     // std::cout<<"P1 gamma "<<k1.gamma<<"\n\n";
     //Eval All
-    uint8_t* t = (uint8_t*)malloc(database_size*sizeof(uint8_t));
+    // uint8_t* t = (uint8_t*)malloc(database_size*sizeof(uint8_t));
     auto start = std::chrono::high_resolution_clock::now();
-    t = dpfxor_eval_all(1, k1);
+    uint8_t* t = dpfxor_eval_all(1, k1);
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
 
@@ -82,7 +82,7 @@ int main() {
             auto start2 = std::chrono::high_resolution_clock::now();
             
             GroupElement* o = inner_xor_Zp(database_size, 0, databaseB, t, block);
-            
+            std::cout<<"P1: "<<o[0].value<<"\n";
             for(int i=0; i<block; i++) {
                 p1.send_ge(o[i], bitlength, 2);
             }

@@ -4,10 +4,12 @@
 #include "server.h"
 #include "server_trusted.h"
 #include <chrono>
+#include<fstream>
+
 
 int main() {
 
-    prng.SetSeed(toBlock(0, time(NULL)), sizeof(block));
+    prng.SetSeed(toBlock(0, 0), sizeof(block));
 
     std::string ip[4] = {"127.0.0.1", "127.0.0.1", "127.0.0.1", "127.0.0.1"};
     int port[4] = {2000, 2001, 3000, 3001};
@@ -17,7 +19,7 @@ int main() {
     p2.connect_to_client(ipr, portr);
     std::cout<<"----------------Running Key Gen for cut-and-choose-----------------\n";
 
-    int entry_size = 40;
+    int entry_size = 81;
     int Bout = bitlength;
     int Bin = 18;
     int t = 125;
@@ -27,7 +29,7 @@ int main() {
     else block = entry_size/bitlength;
 
     dpf_input_pack* dpfip = new dpf_input_pack;
-    dpfip->index = GroupElement(5, Bin);
+    dpfip->index = GroupElement(1046, Bin);
     dpfxor_key k0, k1;
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -102,14 +104,21 @@ int main() {
             }
 
             for(int i=0; i<block; i++) {
-                o1[i] = p2.recv_ge(bitlength, 0);
+                o1[i] = p2.recv_ge(bitlength, 1);
             }
 
-            GroupElement* dbout = (GroupElement*)malloc(block*sizeof(GroupElement));
+            uint64_t *dbout = (uint64_t*) malloc(block*sizeof(uint64_t));
             for(int i=0; i<block; i++) {
-                dbout[i] = o0[i] + o1[i];
-                std::cout<<"Block i: "<<i<<" value: "<<dbout[i].value<< " ";
+                dbout[i] = (o0[i].value ^ o1[i].value);
+                // std::cout<<"Block i: "<<i<<" value: "<<dbout[i].value<< " ";
+                
             }
+            // std::cout<<o0[i]
+            // std::cout<<dbout[0]<<"\n";
+            std::ofstream myfile("output.txt");
+                for(int i=0; i<block; i++)
+                    myfile<<dbout[i]<<std::endl;
+                myfile.close();
 
             std::cout<<"\n";       
             
