@@ -53,4 +53,5 @@ public:
     long recv_long(int party);
     char recv_char(int party);
     dpf_key recv_dpf_key(int bl, int party);
+    dpfxor_key recv_dpfxor_key(int bl, int party);
 };

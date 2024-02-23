@@ -45,7 +45,7 @@ public:
     void send_int(int &i, int party);
 
     void send_dpf_key(dpf_key dpfk, int bw, int bl, int party);
-
+    void send_dpfxor_key(dpfxor_key dpfk, int bw, int party);
     void send_input_check_pack_2(input_check_pack_2 &icp, int bw, int bl, int party);
     uint8_t recv_uint8(int party);
 

@@ -118,3 +118,55 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(c PUBLIC OpenMP::OpenMP_CXX)
 endif()
 target_compile_options(c PRIVATE -pthread -std=c++17 -Wno-parentheses-equality -Wno-ignored-attributes -mpclmul -fopenmp -maes -msse2 -msse4.1 -g)
+
+add_executable(p1_phase2)
+target_sources(p1_phase2 PRIVATE ${PROJECT_SOURCE_DIR}/tests/protocol/p1_phase2.cpp)
+target_include_directories(p1_phase2 PRIVATE
+deps/cryptoTools
+deps/EzPC
+${CMAKE_CURRENT_SOURCE_DIR}
+)
+target_link_libraries(p1_phase2 PRIVATE dpf ntl gf2x gmp m)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(p1_phase2 PUBLIC OpenMP::OpenMP_CXX)
+endif()
+target_compile_options(p1_phase2 PRIVATE -pthread -std=c++17 -Wno-parentheses-equality -Wno-ignored-attributes -mpclmul -fopenmp -maes -msse2 -msse4.1 -g)
+
+add_executable(p0_phase2)
+target_sources(p0_phase2 PRIVATE ${PROJECT_SOURCE_DIR}/tests/protocol/p0_phase2.cpp)
+target_include_directories(p0_phase2 PRIVATE
+deps/cryptoTools
+deps/EzPC
+${CMAKE_CURRENT_SOURCE_DIR}
+)
+target_link_libraries(p0_phase2 PRIVATE dpf ntl gf2x gmp m)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(p0_phase2 PUBLIC OpenMP::OpenMP_CXX)
+endif()
+target_compile_options(p0_phase2 PRIVATE -pthread -std=c++17 -Wno-parentheses-equality -Wno-ignored-attributes -mpclmul -fopenmp -maes -msse2 -msse4.1 -g)
+
+add_executable(p2_phase2)
+target_sources(p2_phase2 PRIVATE ${PROJECT_SOURCE_DIR}/tests/protocol/p2_phase2.cpp)
+target_include_directories(p2_phase2 PRIVATE
+deps/cryptoTools
+deps/EzPC
+${CMAKE_CURRENT_SOURCE_DIR}
+)
+target_link_libraries(p2_phase2 PRIVATE dpf ntl gf2x gmp m)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(p2_phase2 PUBLIC OpenMP::OpenMP_CXX)
+endif()
+target_compile_options(p2_phase2 PRIVATE -pthread -std=c++17 -Wno-parentheses-equality -Wno-ignored-attributes -mpclmul -fopenmp -maes -msse2 -msse4.1 -g)
+
+add_executable(c_phase2)
+target_sources(c_phase2 PRIVATE ${PROJECT_SOURCE_DIR}/tests/protocol/c_phase2.cpp)
+target_include_directories(c_phase2 PRIVATE
+deps/cryptoTools
+deps/EzPC
+${CMAKE_CURRENT_SOURCE_DIR}
+)
+target_link_libraries(c_phase2 PRIVATE dpf ntl gf2x gmp m)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(c_phase2 PUBLIC OpenMP::OpenMP_CXX)
+endif()
+target_compile_options(c_phase2 PRIVATE -pthread -std=c++17 -Wno-parentheses-equality -Wno-ignored-attributes -mpclmul -fopenmp -maes -msse2 -msse4.1 -g)

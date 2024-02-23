@@ -353,3 +353,28 @@ dpf_key Server::recv_dpf_key(int bl, int party) {
     return dpf_key(height, Bout, s, t, sigma, tau0, tau1, gamma);
 }
 
+dpfxor_key Server::recv_dpfxor_key(int bl, int party) {
+    int height = recv_int(party);
+
+    block s = recv_block(party);
+
+    block *sigma = new block[height-7];
+
+    for(int i=0; i<height-7; i++) {
+        sigma[i] = recv_block(party);
+    }
+
+    uint8_t* tau0 = new uint8_t[height-7];
+    for(int i=0; i<height-7; i++) {
+        tau0[i] = recv_uint8(party);
+    }
+
+    uint8_t* tau1 = new uint8_t[height-7];
+    for(int i=0; i<height-7; i++) {
+        tau1[i] = recv_uint8(party);
+    }
+
+    block gamma = recv_block(party);
+    // std::cout<<"P0 received gamma\n";
+    return dpfxor_key(height, s, sigma, tau0, tau1, gamma);
+}

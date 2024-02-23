@@ -30,10 +30,16 @@ std::string uint128ToString(const __uint128_t& value)
 
 int main() {
     // prng.SetSeed(toBlock(0, 0), sizeof(block));
-    int Bin = 20;
+    int Bin = 18;
     int Bout = 40;
-    // int database_size = (1<<Bin);
-    // int entry_size = 8192;
+    int database_size = (1<<Bin);
+    int entry_size = 40;
+
+    GroupElement *database = new GroupElement[database_size];
+    for(int i=0; i<database_size; i++)
+        // database[i] = random_ge(bitlength);
+        database[i] = i;
+    std::cout<<database[5].value<<"\n\n";
     // bitlength = Bout;
     // int blocks;
     // if(entry_size%bitlength != 0) blocks = entry_size/bitlength + 1;
@@ -52,37 +58,37 @@ int main() {
 
     // std::cout<<database[2][0].value<<" "<<database[2][1].value<<"\n";
 
-    uint64_t a = 130;
-    // std::cout<<((1<<7)-1)<<"\n";
-    // std::cout<<(130 & 127)<<"\n";
-    uint64_t amod = a & ((1<<7) - 1); 
-    std::cout<<amod<<"\n";
-    block test = toBlock(0, amod);
-    std::cout<<test<<"\n";
-    uint8_t* temp = (uint8_t*) &test;
-    std::cout<<temp[15]<<"\n";
+    // uint64_t a = 130;
+    // // std::cout<<((1<<7)-1)<<"\n";
+    // // std::cout<<(130 & 127)<<"\n";
+    // uint64_t amod = a & ((1<<7) - 1); 
+    // std::cout<<amod<<"\n";
+    // block test = toBlock(0, amod);
+    // std::cout<<test<<"\n";
+    // uint8_t* temp = (uint8_t*) &test;
+    // std::cout<<temp[15]<<"\n";
     // uint8_t* val = (uint8_t*)malloc(128*sizeof(uint8_t));
 
     std::cout<<"----------------Running Key Gen DPF+-----------------\n";
     prng.SetSeed(toBlock(0, 0), sizeof(block));
 
     
-    dpf_input_pack *dpfip[2];
-    dpfip[0] = (dpf_input_pack*)malloc(sizeof(dpf_input_pack));
-    dpfip[1] = (dpf_input_pack*)malloc(sizeof(dpf_input_pack));
-    dpfip[0]->index = GroupElement(19560, Bin);
-    dpfip[1]->index = GroupElement(2, Bin);
-    dpfip[0]->alpha = (GroupElement*)malloc(sizeof(GroupElement));
-    dpfip[0]->alpha[0] = GroupElement(2, Bout);
-    dpfip[1]->alpha = (GroupElement*)malloc(sizeof(GroupElement));
-    dpfip[1]->alpha[0] = GroupElement(10, Bout);
-    input_check_pack_2 ip2;
-    dpf_key k0, k1;
-    auto start = std::chrono::high_resolution_clock::now();
-    std::tie(k0, k1) = dpf_keygen(Bin, Bout, dpfip, &ip2);
-    auto end  = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
-    std::cout<<"Time taken for keygen DPF+ "<<duration.count()*1e-6<<"\n";
+    // dpf_input_pack *dpfip[2];
+    // dpfip[0] = (dpf_input_pack*)malloc(sizeof(dpf_input_pack));
+    // dpfip[1] = (dpf_input_pack*)malloc(sizeof(dpf_input_pack));
+    // dpfip[0]->index = GroupElement(19560, Bin);
+    // dpfip[1]->index = GroupElement(2, Bin);
+    // dpfip[0]->alpha = (GroupElement*)malloc(sizeof(GroupElement));
+    // dpfip[0]->alpha[0] = GroupElement(2, Bout);
+    // dpfip[1]->alpha = (GroupElement*)malloc(sizeof(GroupElement));
+    // dpfip[1]->alpha[0] = GroupElement(10, Bout);
+    // input_check_pack_2 ip2;
+    // dpf_key k0, k1;
+    // auto start = std::chrono::high_resolution_clock::now();
+    // std::tie(k0, k1) = dpf_keygen(Bin, Bout, dpfip, &ip2);
+    // auto end  = std::chrono::high_resolution_clock::now();
+    // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
+    // std::cout<<"Time taken for keygen DPF+ "<<duration.count()*1e-6<<"\n";
 
 
     std::cout<<"----------------Running Key Gen DPFxor-----------------\n";
@@ -92,7 +98,7 @@ int main() {
     dpf_input_pack* dpfip2;
     dpfip2 = (dpf_input_pack*)malloc(sizeof(dpf_input_pack));
     // dpfip = (dpf_input_pack*)malloc(sizeof(dpf_input_pack));
-    dpfip2->index = GroupElement(195602, Bin);
+    dpfip2->index = GroupElement(5, Bin);
     // dpfip[1]->index = GroupElement(2, Bin);
     // dpfip[0]->alpha = (GroupElement*)malloc(sizeof(GroupElement));
     // dpfip[0]->alpha[0] = GroupElement(2, Bout);
@@ -100,11 +106,31 @@ int main() {
     // dpfip[1]->alpha[0] = GroupElement(10, Bout);
     // input_check_pack_2 ip2;
     dpfxor_key key0, key1;
-    start = std::chrono::high_resolution_clock::now();
+    auto start = std::chrono::high_resolution_clock::now();
     std::tie(key0, key1) = dpfxor_keygen_local(Bin,dpfip2);
-    end  = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
+    auto end  = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
     std::cout<<"Time taken for keygen DPFxor "<<duration.count()*1e-6<<"\n";
+
+    std::cout<<"P2 key0: s "<<key0.s<<"\n";
+
+    for(int i=0; i<key0.height-7; i++) {
+        std::cout<<"P2 sigma i "<<i<<" "<<key0.sigma[i]<<"\n";
+        std::cout<<"P2 tau0"<<(int)key0.tau0[i]<<"\n";
+        std::cout<<"P2 tau1"<<(int)key0.tau1[i]<<"\n";
+    }
+
+    std::cout<<"P2 gamma "<<key0.gamma<<"\n\n\n\n";
+
+    std::cout<<"P2 key1: s "<<key1.s<<"\n";
+
+    for(int i=0; i<key1.height-7; i++) {
+        std::cout<<"P2 sigma i "<<i<<" "<<key1.sigma[i]<<"\n";
+        std::cout<<"P2 tau0"<<(int)key1.tau0[i]<<"\n";
+        std::cout<<"P2 tau1"<<(int)key1.tau1[i]<<"\n";
+    }
+
+    std::cout<<"P2 gamma "<<key1.gamma<<"\n";
 
     // int i = 14;
     // int flag = 0;
@@ -177,6 +203,11 @@ int main() {
     for(int i=0; i< (1<<Bin); i++) {
         if(out0[i] ^ out1[i]) std::cout<<"i "<<i<<"\n";
     }
+
+    GroupElement t0 = inner_xor(database_size, 0, database, out0);
+    GroupElement t1 = inner_xor(database_size, 0, database, out1);
+    std::cout<<t0.value<<" "<<t1.value<<"\n";
+    std::cout<<(t0.value ^ t1.value) <<"\n";
 
     // std::cout<<"--------------------Running Eval All-------------\n";
     // GroupElement **t_vec_0, **t_vec_1;

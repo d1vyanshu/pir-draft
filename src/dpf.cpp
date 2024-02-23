@@ -152,19 +152,19 @@ std::pair<dpfxor_key, dpfxor_key> dpfxor_keygen_local(int height, dpf_input_pack
     dpfxor_key *key1 = new dpfxor_key;
     key0->height = height;
     key1->height = height;
-    key0->Bout = 1;
-    key1->Bout = 1;
+    // key0->Bout = 1;
+    // key1->Bout = 1;
     block* hats = (block*) malloc (2*sizeof(block));
     uint8_t* hatt = (uint8_t*) malloc(2*sizeof(uint8_t));
 
     key0->s = keys[0];
     hats[0] = keys[0];
-    key0->t = 0;
+    // key0->t = 0;
     hatt[0] = 0;
 
     key1->s = keys[1];
     hats[1] = keys[1];
-    key1->t = 1;
+    // key1->t = 1;
     hatt[1] = 1;
     key0->sigma = (block*)malloc((height-7)*sizeof(block));
     key0->tau0 = (uint8_t*)malloc((height-7)*sizeof(uint8_t));
@@ -879,6 +879,28 @@ GroupElement compute_hato(int database_size, GroupElement rotated_index, GroupEl
     return GroupElement(hatovalue, bitlength);
 };
 
+GroupElement inner_xor(int database_size, GroupElement rotated_index, GroupElement* db, uint8_t* t) {
+    uint64_t o = 0;
+
+    for(int i=0; i<database_size; i++) 
+        if(t[i])
+            o = o ^ db[i].value;
+
+        return GroupElement(o, bitlength);
+    
+}
+
+GroupElement* inner_xor_Zp(int database_size, GroupElement rotated_index, GroupElement** db, uint8_t* t, int blocks) {
+    GroupElement *o = (GroupElement*)malloc(blocks*sizeof(GroupElement));
+
+    #pragma omp parallel for num_threads(nt) schedule(static, 1)
+    for(size_t i = 0; i<blocks; i++) {
+        o[i] = inner_xor(database_size, rotated_index, db[i], t);
+    }
+
+        return o;
+    
+}
 
 
 //Modified DPFxor

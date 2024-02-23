@@ -41,26 +41,22 @@ inline void free_dpf_key(dpf_key &key){
 }
 
 struct dpfxor_key {
-    int height, Bout;
+    int height;
     block s;
-    uint8_t t;
     block *sigma;
     uint8_t *tau0;
     uint8_t *tau1;
     block gamma;
 
     dpfxor_key() {}
-    dpfxor_key(int height, int Bout,
+    dpfxor_key(int height,
            block s,
-           uint8_t t,
            block *sigma,
            uint8_t *tau0,
            uint8_t *tau1,
            block gamma) : 
-                height(height), 
-                Bout(Bout), 
-                s(s), 
-                t(t), 
+                height(height),  
+                s(s),  
                 sigma(sigma), 
                 tau0(tau0), 
                 tau1(tau1),

@@ -324,3 +324,24 @@ void ServerTrusted::send_dpf_key(dpf_key k0, int bw, int bl, int party) {
     send_ge(k0.gamma[1], bl, party);
 
 };
+
+void ServerTrusted::send_dpfxor_key(dpfxor_key k0, int bw, int party) {
+    send_int(k0.height, party);
+
+    send_block(k0.s, party);
+    // std::cout<<"P2 after sending s\n";
+    for(int i=0; i<(k0.height)-7; i++) {
+        send_block(k0.sigma[i], party);
+    }
+    // std::cout<<"P2 after sending sigma\n";
+    for(int i=0; i<(k0.height)-7; i++) {
+        send_uint8(k0.tau0[i], party);
+    }
+    // std::cout<<"P2 after sending tau0\n";
+    for(int i=0; i<(k0.height)-7; i++) {
+        send_uint8(k0.tau1[i], party);
+    }
+    // std::cout<<"P2 before sending gamma\n";
+    send_block(k0.gamma, party);
+    // std::cout<<"P2 after sending gamma\n";
+};
