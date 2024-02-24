@@ -34,6 +34,8 @@ int main() {
 
         }
     }
+    // std::cout<<"Database 1 "<<database[1].value<<" Database 1000 "<<database[1000].value<<" database 2000 "<<database[2000].value<<"\n";
+
     // std::cout<<"Here\n";
     // std::cout<<"database D[i] "<<databaseB[0][1046].value<<" "<<databaseB[1][1046].value<<" "<<databaseB[2][1046].value<<"\n";
     // std::cout<<"here2\n";
@@ -50,9 +52,15 @@ int main() {
     p1.connect_to_client(ipq, portq);
 
     //Receive DPF key from P2
-    int t = 125;
+    int t = 20;
+    GroupElement indices[t];
+    for(int i=0; i<t; i++) {
+        indices[i] = p1.recv_ge(input_size, 3);
+        // std::cout<<"index i"<<i<<" "<<indices[i].value<<"\n";
+    }
+    GroupElement o[t];
     for(int j=0; j<t; j++) {
-        GroupElement index = p1.recv_ge(input_size, 2);
+        // GroupElement index = p1.recv_ge(input_size, 2);
         dpfxor_key k1 = p1.recv_dpfxor_key(bitlength, 2);
 
         //     std::cout<<"P1 key s "<<k1.s<<"\n";
@@ -73,12 +81,12 @@ int main() {
         // std::cout<<"P1 here\n";
         if(entry_size <= bitlength) {
                 auto start2 = std::chrono::high_resolution_clock::now();
-                GroupElement o = inner_xor(database_size, 0, database, t);
+                o[j] = inner_xor(database_size, indices[j], database, t);
                 auto end2 = std::chrono::high_resolution_clock::now();
                 auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end2-start2);
                 // std::cout<<"P1 o "<<o.value<<"\n";
 
-                p1.send_ge(o, bitlength, 2);
+                p1.send_ge(o[j], bitlength, 2);
         }
         else {
                 auto start2 = std::chrono::high_resolution_clock::now();
@@ -98,9 +106,32 @@ int main() {
         free_dpfxor_key(k1);
     }
 
-    // uint8_t open[t];
-    // for(int i=0; i<t; i++)
-    //     open[i] = p1.recv_uint8(2);
+    uint8_t open[t];
+    for(int i=0; i<t; i++) {
+        open[i] = p1.recv_uint8(2);
+        // std::cout<<(int)open[i]<<"\n";
+    }
+
+    
+    for(int i=0; i<t; i++) {
+        if(open[i])
+            p1.send_ge(o[i], bitlength, 2);
+        else {
+            GroupElement temp = GroupElement(0, bitlength);
+            p1.send_ge(temp, bitlength, 2);
+        }
+    }
+
+        
+    for(int i=0; i<t; i++) {
+        if(open[i]==0)
+            p1.send_ge(o[i], bitlength, 3);
+        else {
+            GroupElement temp = GroupElement(0, bitlength);
+            p1.send_ge(temp, bitlength, 3);
+        }
+    }
+
 
     if(database != NULL) free(database);
     if(databaseB != NULL) {

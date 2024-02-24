@@ -881,10 +881,12 @@ GroupElement compute_hato(int database_size, GroupElement rotated_index, GroupEl
 
 GroupElement inner_xor(int database_size, GroupElement rotated_index, GroupElement* db, uint8_t* t) {
     uint64_t o = 0;
-
-    for(int i=0; i<database_size; i++) 
+    
+    for(int i=0; i<database_size; i++)  {
+    int ind = (i + rotated_index.value) & ((int(1) << rotated_index.bitsize) - 1);
         if(t[i])
-            o = o ^ db[i].value;
+            o = o ^ db[ind].value;
+    }
 
         return GroupElement(o, bitlength);
     

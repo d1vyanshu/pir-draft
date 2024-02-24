@@ -5,13 +5,39 @@
 #include "server_trusted.h"
 #include <chrono>
 #include<fstream>
-#include <bits/stdc++.h>
 
 
 int main() {
 
-    prng.SetSeed(toBlock(0, 0), sizeof(block));
+    int entry_size = 40;
+    int Bout = bitlength;
+    int Bin = 16;
+    int t = 20;
+    int database_size = (1<<Bin);
+    int block;
+    if(entry_size%bitlength!=0) block = entry_size/bitlength + 1;
+    else block = entry_size/bitlength;
 
+    prng.SetSeed(toBlock(0, 0), sizeof(block));
+    GroupElement *database = NULL;
+    GroupElement **databaseB = NULL;
+    if(entry_size<= bitlength) {
+        database = new GroupElement[database_size];
+        for(int i=0; i<database_size; i++)
+            database[i] = random_ge(bitlength);
+            // database[i] = i;
+    }
+    else {
+        databaseB = (GroupElement**)malloc(block*sizeof(GroupElement*));
+        for(int i=0; i<block; i++) {
+            databaseB[i] = (GroupElement*)malloc(database_size*sizeof(GroupElement));
+            for(int j=0; j<database_size; j++) {
+                databaseB[i][j] = random_ge(bitlength);
+            }
+
+        }
+    }
+    // std::cout<<"Database 1 "<<database[1].value<<" Database 1000 "<<database[1000].value<<" database 2000 "<<database[2000].value<<"\n";
     std::string ip[4] = {"127.0.0.1", "127.0.0.1", "127.0.0.1", "127.0.0.1"};
     int port[4] = {2000, 2001, 3000, 3001};
     std::string ipr[2] = {"127.0.0.1", "127.0.0.1"};
@@ -20,20 +46,19 @@ int main() {
     p2.connect_to_client(ipr, portr);
     std::cout<<"----------------Running Key Gen for cut-and-choose-----------------\n";
 
-    int entry_size = 40;
-    int Bout = bitlength;
-    int Bin = 16;
-    int t = 125;
 
-    int block;
-    if(entry_size%bitlength!=0) block = entry_size/bitlength + 1;
-    else block = entry_size/bitlength;
 
-    GroupElement out0[t], out1[t], outhash0[t], outhash1[t];
+    GroupElement out0[t], out1[t], outhash0[t], outhash1[t], r[t];
+    for(int j=0; j<t; j++) {
+        r[j] = random_ge(Bin);
+        p2.send_ge(r[j], Bin, 2);
+    }
+
     for(int j=0; j<t; j++) {
         if(j%10 == 0) std::cout<<"Iteration "<<j<<"\n";
         dpf_input_pack* dpfip = new dpf_input_pack;
-        dpfip->index = GroupElement(j + 1000, Bin);
+
+        dpfip->index = r[j];
         dpfxor_key k0, k1;
 
         auto start = std::chrono::high_resolution_clock::now();
@@ -50,16 +75,16 @@ int main() {
         //     std::cout<<"P2 sigma i "<<i<<" "<<k0.sigma[i]<<"\n";
         // }
         
-        GroupElement index0 = random_ge(Bin);
+        // GroupElement index0 = random_ge(Bin);
         // std::cout<<"P2 index "<<index0.value<<"\n";
-        p2.send_ge(index0, Bin, 0);
+        // p2.send_ge(index0, Bin, 0);
         // std::cout<<"P2 here\n";
         p2.send_dpfxor_key(k0, Bin, 0);
         
         
         //Sending key, index and payload to P1
-        dpfip->index = dpfip->index - index0;
-        p2.send_ge(dpfip->index, Bin, 1);
+        // dpfip->index = dpfip->index - index0;
+        // p2.send_ge(dpfip->index, Bin, 1);
         p2.send_dpfxor_key(k1, Bin, 1);
 
         auto end_send = std::chrono::high_resolution_clock::now();
@@ -133,23 +158,57 @@ int main() {
         
     }
     // std::cout<<"P2: Here also\n";
-    std::cout<<(out0[100].value ^ out1[100].value)<<"\n";
+    std::cout<<(out0[1].value ^ out1[1].value)<<"\n";
     
-    // uint8_t temp = 4;
-    // p2.send_uint8(temp, 2);
 
-    // uint8_t open[t];
-    // for(int i=0; i<t; i++)
-    //     if(i<75) open[i] = 1;
-    //     else open[i] = 0;
-    
-    // std::shuffle(open, open + t, std::default_random_engine(time(NULL)));
+
+    uint8_t open[t];
+    for(int i=0; i<t; i++) {
+        open[i] = p2.recv_uint8(2);
+    }
+
 
     // for(int i=0; i<10; i++)
     //     std::cout<<(int)open[i]<<"\n";
     for(int i=0; i<t; i++) {
         p2.send_uint8(open[i], 0);
         p2.send_uint8(open[i], 1);
+        // std::cout<<(int)open[i]<<"\n";
+    }
+
+
+    for(int i=0; i<t; i++) {
+        outhash0[i] = p2.recv_ge(bitlength, 0);
+        outhash1[i] = p2.recv_ge(bitlength, 1);
+
+        if(open[i]) {
+            // std::cout<<"i "<<i<<"\n";
+                if(outhash0[i].value != out0[i].value)
+                    std::cout<<"Server S0 is cheating\n";
+                else if(outhash1[i].value != out1[i].value)
+                    std::cout<<"Server S1 is cheating\n";
+
+                if((outhash0[i].value ^ outhash1[i].value) != database[(GroupElement(2, Bin)*r[i]).value].value) {
+                    std::cout<<"One of the evaluator is cheating.\n";
+                    // std::cout<<"i "<<i<<" "<<(out0[i].value ^ out1[i].value)<<" "<<database[(GroupElement(2, Bin)*r[i]).value].value<<"\n";
+                }
+        }
+    }
+
+    
+    // uint8_t temp = 4;
+    // p2.send_uint8(temp, 2);
+    for(int i=0; i<t; i++) {
+        if(open[i]) {
+            GroupElement temp = GroupElement(0, bitlength);
+            p2.send_ge(temp, bitlength, 2);
+        }
+        else {
+            // std::cout<<"i "<<i<<" out0 "<<out0[i].value<<" out1 "<<out1[i].value<<"\n";
+            p2.send_ge(out0[i], bitlength, 2);
+            p2.send_ge(out1[i], bitlength, 2);
+        }
+
     }
 
 
