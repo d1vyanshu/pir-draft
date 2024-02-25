@@ -60,7 +60,7 @@ int main() {
 
     
     //Receive DPF key from P2
-    int t = 20;
+    int t = 125;
     GroupElement indices[t];
     for(int i=0; i<t; i++) {
         indices[i] = p0.recv_ge(input_size, 3);
@@ -99,7 +99,7 @@ int main() {
         else {
                 auto start2 = std::chrono::high_resolution_clock::now();
                 
-                GroupElement* o = inner_xor_Zp(database_size, 0, databaseB, t, block);
+                GroupElement* o = inner_xor_Zp(database_size, indices[j], databaseB, t, block);
                 // std::cout<<"P0: "<<o[0].value<<"\n";
                 for(int i=0; i<block; i++) {
                     p0.send_ge(o[i], bitlength, 2);
@@ -128,23 +128,26 @@ int main() {
     for(int i=0; i<t; i++) 
         open[i] = p0.recv_uint8(2);
 
-    for(int i=0; i<t; i++) {
-        if(open[i])
-            p0.send_ge(o[i], bitlength, 2);
-        else {
-            GroupElement temp = GroupElement(0, bitlength);
-            p0.send_ge(temp, bitlength, 2);
-        }
-    }
-            
+    if(entry_size <= bitlength) {
         for(int i=0; i<t; i++) {
-        if(open[i]==0)
-            p0.send_ge(o[i], bitlength, 3);
-        else {
-            GroupElement temp = GroupElement(0, bitlength);
-            p0.send_ge(temp, bitlength, 3);
+            if(open[i])
+                p0.send_ge(o[i], bitlength, 2);
+            else {
+                GroupElement temp = GroupElement(0, bitlength);
+                p0.send_ge(temp, bitlength, 2);
+            }
+        }
+                
+            for(int i=0; i<t; i++) {
+            if(open[i]==0)
+                p0.send_ge(o[i], bitlength, 3);
+            else {
+                GroupElement temp = GroupElement(0, bitlength);
+                p0.send_ge(temp, bitlength, 3);
+            }
         }
     }
+
     if(database != NULL) free(database);
     if(databaseB != NULL) {
         for(int i=0; i<block; i++)

@@ -15,8 +15,13 @@ int main() {
     Client c = Client(ip, port, 3);
 
     int input_size = 16;
-    int t=20;
-    GroupElement index = GroupElement(1, input_size);
+    int entry_size = 40;
+    int block;
+    if(entry_size%bitlength!=0) block = entry_size/bitlength + 1;
+    else block = entry_size/bitlength;
+
+    int t=125;
+    GroupElement index = GroupElement(100, input_size);
     GroupElement indices[t];
     uint8_t open[t];
     GroupElement r[t];
@@ -46,35 +51,61 @@ int main() {
         c.send_uint8(open[i], 2);
 
     uint64_t out;
+    uint64_t *outb0, *outb1;
+    if(entry_size > bitlength) {
+        outb0 = (uint64_t*)malloc(block*sizeof(uint64_t));
+        outb1 = (uint64_t*)malloc(block*sizeof(uint64_t));
+    }
+
+
     uint8_t flag = 0;
     for(int i=0; i<t; i++) {
-        if(open[i]) {
-            GroupElement temp = c.recv_ge(bitlength, 2);
-            GroupElement temp0 = c.recv_ge(bitlength, 0);
-            GroupElement temp1 = c.recv_ge(bitlength, 1);
-        }
-        else {
-            GroupElement temp1 = c.recv_ge(bitlength, 2);
-            GroupElement temp2 = c.recv_ge(bitlength, 2);
-            GroupElement temp3 = c.recv_ge(bitlength, 0);
-            GroupElement temp4 = c.recv_ge(bitlength, 1);
-            // std::cout<<"i "<<i<<" temp1 "<<temp1.value<<" temp2 "<<temp2.value<<"\n";
-            if(flag) {
-                continue;
+        if(entry_size <= bitlength) {
+            if(open[i]) {
+                GroupElement temp = c.recv_ge(bitlength, 2);
+                GroupElement temp0 = c.recv_ge(bitlength, 0);
+                GroupElement temp1 = c.recv_ge(bitlength, 1);
             }
             else {
-                if(temp1.value != temp3.value)
-                    std::cout<<"Server S0 is cheating\n";
-                else if(temp2.value != temp4.value)
-                    std::cout<<"Server S1 is cheating\n";
-               out = temp3.value ^ temp4.value; 
-            //    std::cout<<out<<"\n";
-               flag = 1;
+                GroupElement temp1 = c.recv_ge(bitlength, 2);
+                GroupElement temp2 = c.recv_ge(bitlength, 2);
+                GroupElement temp3 = c.recv_ge(bitlength, 0);
+                GroupElement temp4 = c.recv_ge(bitlength, 1);
+                // std::cout<<"i "<<i<<" temp1 "<<temp1.value<<" temp2 "<<temp2.value<<"\n";
+                if(flag) {
+                    continue;
+                }
+                else {
+                    if(temp1.value != temp3.value)
+                        std::cout<<"Server S0 is cheating\n";
+                    else if(temp2.value != temp4.value)
+                        std::cout<<"Server S1 is cheating\n";
+                out = temp3.value ^ temp4.value; 
+                //    std::cout<<out<<"\n";
+                flag = 1;
+                }
+            }
+        }
+        else {
+            if(open[i]) {
+                for(int j=0; j<block; j++) 
+                    GroupElement temp = c.recv_ge(bitlength, 2); 
+            }
+            else {
+                if(flag) continue;
+                
+                for(int j=0; j<block; j++) {
+                    outb0[j] = (c.recv_ge(bitlength, 2)).value;
+                    outb1[j] = (c.recv_ge(bitlength, 2)).value;
+                }
+                flag = 1;
             }
         }
     }
 
     std::cout<<"Final Output"<<out<<"\n";
+    // for(int j=0; j<block; j++)
+        // std::cout<<(outb0[j] ^ outb1[j])<<" ";
 
 
     c.close(0);    

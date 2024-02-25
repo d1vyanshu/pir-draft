@@ -12,7 +12,7 @@ int main() {
     int entry_size = 40;
     int Bout = bitlength;
     int Bin = 16;
-    int t = 20;
+    int t = 125;
     int database_size = (1<<Bin);
     int block;
     if(entry_size%bitlength!=0) block = entry_size/bitlength + 1;
@@ -37,7 +37,8 @@ int main() {
 
         }
     }
-    // std::cout<<"Database 1 "<<database[1].value<<" Database 1000 "<<database[1000].value<<" database 2000 "<<database[2000].value<<"\n";
+    std::cout<<"Database "<<database[100].value<<"\n";
+    // std::cout<<"Database 1 "<<databaseB[0][1].value<<" Database 1000 "<<databaseB[1][1].value<<" database 2000 "<<databaseB[2][1].value<<"\n";
     std::string ip[4] = {"127.0.0.1", "127.0.0.1", "127.0.0.1", "127.0.0.1"};
     int port[4] = {2000, 2001, 3000, 3001};
     std::string ipr[2] = {"127.0.0.1", "127.0.0.1"};
@@ -48,7 +49,23 @@ int main() {
 
 
 
-    GroupElement out0[t], out1[t], outhash0[t], outhash1[t], r[t];
+    GroupElement *out0, *out1, *outhash0, *outhash1, r[t];
+    GroupElement **o0, **o1;
+    if(entry_size <= bitlength) {
+        out0 = (GroupElement*)malloc(t*sizeof(GroupElement));
+        out1 = (GroupElement*)malloc(t*sizeof(GroupElement));
+        outhash0 = (GroupElement*)malloc(t*sizeof(GroupElement));
+        outhash1 = (GroupElement*)malloc(t*sizeof(GroupElement));
+    }
+    else {
+        o0 = (GroupElement**)malloc(t*sizeof(GroupElement*));
+        o1 = (GroupElement**)malloc(t*sizeof(GroupElement*));
+        for(int j=0; j<t; j++) {
+            o0[j] = (GroupElement*)malloc(block*sizeof(GroupElement));
+            o1[j] = (GroupElement*)malloc(block*sizeof(GroupElement));
+        }
+    }
+    
     for(int j=0; j<t; j++) {
         r[j] = random_ge(Bin);
         p2.send_ge(r[j], Bin, 2);
@@ -124,41 +141,43 @@ int main() {
         }
         else {
 
-                GroupElement *o0, *o1;
-                o0 = (GroupElement*)malloc(block*sizeof(GroupElement));
-                o1 = (GroupElement*)malloc(block*sizeof(GroupElement));
+                
+                // o0 = (GroupElement*)malloc(block*sizeof(GroupElement));
+                // o1 = (GroupElement*)malloc(block*sizeof(GroupElement));
 
                 for(int i=0; i<block; i++) {
-                    o0[i] = p2.recv_ge(bitlength, 0);
+                    o0[j][i] = p2.recv_ge(bitlength, 0);
                 }
 
                 for(int i=0; i<block; i++) {
-                    o1[i] = p2.recv_ge(bitlength, 1);
+                    o1[j][i] = p2.recv_ge(bitlength, 1);
                 }
-
-                uint64_t *dbout = (uint64_t*) malloc(block*sizeof(uint64_t));
-                for(int i=0; i<block; i++) {
-                    dbout[i] = (o0[i].value ^ o1[i].value);
+                // if(j==10) {
+                //     for(int x=0; x<block; x++) {
+                //         std::cout<<"db0 "<<(o0[j][x].value ^ o1[j][x].value)<<"\n";
+                //     }
+                // }
+                // uint64_t *dbout = (uint64_t*) malloc(block*sizeof(uint64_t));
+                // for(int i=0; i<block; i++) {
+                //     dbout[i] = (o0[i].value ^ o1[i].value);
                     // std::cout<<"Block i: "<<i<<" value: "<<dbout[i].value<< " ";
                     
-                }
+        }
                 // std::cout<<o0[i]
                 // std::cout<<dbout[0]<<"\n";
-                if(j==100) {
-                    std::ofstream myfile("output.txt");
-                        for(int i=0; i<block; i++)
-                            myfile<<dbout[i]<<std::endl;
-                    myfile.close();
+                // if(j==100) {
+                //     std::ofstream myfile("output.txt");
+                //         for(int i=0; i<block; i++)
+                //             myfile<<dbout[i]<<std::endl;
+                //     myfile.close();
 
-                    std::cout<<"\n";
-                }  
-                
-        }
+                //     std::cout<<"\n";
+                // }  
 
         
     }
     // std::cout<<"P2: Here also\n";
-    std::cout<<(out0[1].value ^ out1[1].value)<<"\n";
+    // std::cout<<(out0[1].value ^ out1[1].value)<<"\n";
     
 
 
@@ -177,36 +196,55 @@ int main() {
     }
 
 
-    for(int i=0; i<t; i++) {
-        outhash0[i] = p2.recv_ge(bitlength, 0);
-        outhash1[i] = p2.recv_ge(bitlength, 1);
+    if(entry_size <= bitlength) {
+        for(int i=0; i<t; i++) {
+            
+                outhash0[i] = p2.recv_ge(bitlength, 0);
+                outhash1[i] = p2.recv_ge(bitlength, 1);
 
-        if(open[i]) {
-            // std::cout<<"i "<<i<<"\n";
-                if(outhash0[i].value != out0[i].value)
-                    std::cout<<"Server S0 is cheating\n";
-                else if(outhash1[i].value != out1[i].value)
-                    std::cout<<"Server S1 is cheating\n";
+                if(open[i]) {
+                    // std::cout<<"i "<<i<<"\n";
+                        if(outhash0[i].value != out0[i].value)
+                            std::cout<<"Server S0 is cheating\n";
+                        else if(outhash1[i].value != out1[i].value)
+                            std::cout<<"Server S1 is cheating\n";
 
-                if((outhash0[i].value ^ outhash1[i].value) != database[(GroupElement(2, Bin)*r[i]).value].value) {
-                    std::cout<<"One of the evaluator is cheating.\n";
-                    // std::cout<<"i "<<i<<" "<<(out0[i].value ^ out1[i].value)<<" "<<database[(GroupElement(2, Bin)*r[i]).value].value<<"\n";
+                        if((outhash0[i].value ^ outhash1[i].value) != database[(GroupElement(2, Bin)*r[i]).value].value) {
+                            std::cout<<"One of the evaluator is cheating.\n";
+                            // std::cout<<"i "<<i<<" "<<(out0[i].value ^ out1[i].value)<<" "<<database[(GroupElement(2, Bin)*r[i]).value].value<<"\n";
+                        }
                 }
-        }
+            }
     }
 
     
     // uint8_t temp = 4;
     // p2.send_uint8(temp, 2);
     for(int i=0; i<t; i++) {
-        if(open[i]) {
-            GroupElement temp = GroupElement(0, bitlength);
-            p2.send_ge(temp, bitlength, 2);
+        if(entry_size <= bitlength) {
+            if(open[i]) {
+                GroupElement temp = GroupElement(0, bitlength);
+                p2.send_ge(temp, bitlength, 2);
+            }
+            else {
+                // std::cout<<"i "<<i<<" out0 "<<out0[i].value<<" out1 "<<out1[i].value<<"\n";
+                p2.send_ge(out0[i], bitlength, 2);
+                p2.send_ge(out1[i], bitlength, 2);
+            }
         }
         else {
-            // std::cout<<"i "<<i<<" out0 "<<out0[i].value<<" out1 "<<out1[i].value<<"\n";
-            p2.send_ge(out0[i], bitlength, 2);
-            p2.send_ge(out1[i], bitlength, 2);
+            if(open[i]) {
+                for(int j=0; j<block; j++) {
+                   GroupElement temp = GroupElement(0, bitlength);
+                    p2.send_ge(temp, bitlength, 2); 
+                }
+            }
+            else {
+                for(int j=0; j<block; j++) {
+                    p2.send_ge(o0[i][j], bitlength, 2);
+                    p2.send_ge(o1[i][j], bitlength, 2);
+                }
+            }
         }
 
     }
