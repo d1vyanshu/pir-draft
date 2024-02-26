@@ -10,7 +10,7 @@ int main() {
     auto start2 = std::chrono::high_resolution_clock::now();
     int input_size = 18;
     int database_size = (1<<input_size);
-    int entry_size = 8192;
+    int entry_size = 40;
     int block;
     if(entry_size%bitlength!=0) block = entry_size/bitlength + 1;
     else block = entry_size/bitlength;

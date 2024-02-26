@@ -1,10 +1,10 @@
 #!/bin/bash
 
- ./src/build/c_phase2 &
+ ./src/build/c &
     sleep 1
-  ./src/build/p0_phase2 &
+  ./src/build/p0 &
     sleep 3
- ./src/build/p1_phase2 &
+ ./src/build/p1 &
     sleep 3
- ./src/build/p2_phase2 &
+ ./src/build/p2 &
     wait

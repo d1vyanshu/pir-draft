@@ -9,7 +9,7 @@
 int main() {
     int input_size = 18;
     int database_size = (1<<input_size);
-    int entry_size = 8192;
+    int entry_size = 40;
 
     int block;
     if(entry_size%bitlength!=0) block = entry_size/bitlength + 1;
@@ -75,6 +75,10 @@ int main() {
             std::cout << "Time taken for DB Parse-Through: " << duration.count()*1e-6 <<"\n";
             p1.send_ge(o, bitlength, 3);
             p1.send_ge(hato, bitlength, 3);
+            auto end_online = std::chrono::high_resolution_clock::now();
+            auto duration_online = std::chrono::duration_cast<std::chrono::microseconds>(end_online-start_online);
+             std::cout<<"P1: Time Taken for Online Phase: "<<duration_online.count()*1e-6 <<"\n";
+
         }
         else {
             auto start2 = std::chrono::high_resolution_clock::now();

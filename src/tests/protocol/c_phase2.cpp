@@ -14,11 +14,15 @@ int main() {
     int port[6] = {4000, 4001, 6000, 6001, 8000, 8001};
     Client c = Client(ip, port, 3);
 
-    int input_size = 16;
+    int input_size = 18;
     int entry_size = 40;
     int block;
     if(entry_size%bitlength!=0) block = entry_size/bitlength + 1;
     else block = entry_size/bitlength;
+
+    uint8_t x = 0;
+    c.send_uint8(x, 2);
+    auto start = std::chrono::high_resolution_clock::now();
 
     int t=125;
     GroupElement index = GroupElement(100, input_size);
@@ -47,7 +51,10 @@ int main() {
         // std::cout<<"i "<<i<<" index0 "<<index0.value<<" index1 "<<indices[i].value<<"\n";
     }
 
-    for(int i=0; i<t; i++)
+    //C sends I_1 to P2 which has 3t/5 indices costing 4 bytes each.
+    c.bytes_sent += 12*t/5;
+
+    for(int i=0; i<t; i++) 
         c.send_uint8(open[i], 2);
 
     uint64_t out;
@@ -107,6 +114,11 @@ int main() {
     // for(int j=0; j<block; j++)
         // std::cout<<(outb0[j] ^ outb1[j])<<" ";
 
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
+    std::cout << "Runtime for phase 2: " << duration.count()*1e-6 <<"\n";
+
+        std::cout<<"Client sends bytes: "<<c.bytes_sent<<"\n";
 
     c.close(0);    
     c.close(1);    

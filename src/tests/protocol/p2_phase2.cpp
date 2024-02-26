@@ -11,7 +11,7 @@ int main() {
 
     int entry_size = 40;
     int Bout = bitlength;
-    int Bin = 16;
+    int Bin = 18;
     int t = 125;
     int database_size = (1<<Bin);
     int block;
@@ -46,7 +46,7 @@ int main() {
     ServerTrusted p2 = ServerTrusted(ip, port, 2);
     p2.connect_to_client(ipr, portr);
     std::cout<<"----------------Running Key Gen for cut-and-choose-----------------\n";
-
+    uint8_t x = p2.recv_uint8(2);
 
 
     GroupElement *out0, *out1, *outhash0, *outhash1, r[t];
@@ -72,20 +72,20 @@ int main() {
     }
 
     for(int j=0; j<t; j++) {
-        if(j%10 == 0) std::cout<<"Iteration "<<j<<"\n";
+        // if(j%10 == 0) std::cout<<"Iteration "<<j<<"\n";
         dpf_input_pack* dpfip = new dpf_input_pack;
 
         dpfip->index = r[j];
         dpfxor_key k0, k1;
 
-        auto start = std::chrono::high_resolution_clock::now();
+        // auto start = std::chrono::high_resolution_clock::now();
         std::tie(k0, k1) = dpfxor_keygen_local(Bin, dpfip);
-        auto end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
-        int kgtime = static_cast<int>(duration.count());
+        // auto end = std::chrono::high_resolution_clock::now();
+        // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
+        // int kgtime = static_cast<int>(duration.count());
         free(dpfip);
         //Sending key and index to P0
-        auto start_send = std::chrono::high_resolution_clock::now();
+        // auto start_send = std::chrono::high_resolution_clock::now();
         // std::cout<<"P2 key0: s "<<k0.s<<"\n";
 
         // for(int i=0; i<k0.height-7; i++) {
@@ -104,9 +104,9 @@ int main() {
         // p2.send_ge(dpfip->index, Bin, 1);
         p2.send_dpfxor_key(k1, Bin, 1);
 
-        auto end_send = std::chrono::high_resolution_clock::now();
-        auto duration_send = std::chrono::duration_cast<std::chrono::microseconds>(end_send-start_send);
-        auto preprocess_comm = p2.bytes_sent;
+        // auto end_send = std::chrono::high_resolution_clock::now();
+        // auto duration_send = std::chrono::duration_cast<std::chrono::microseconds>(end_send-start_send);
+        // auto preprocess_comm = p2.bytes_sent;
         // std::cout<<"P2 key0: s "<<k0.s<<"\n";
 
         // for(int i=0; i<k0.height-7; i++) {
@@ -225,6 +225,7 @@ int main() {
             if(open[i]) {
                 GroupElement temp = GroupElement(0, bitlength);
                 p2.send_ge(temp, bitlength, 2);
+                p2.bytes_sent -= 8;
             }
             else {
                 // std::cout<<"i "<<i<<" out0 "<<out0[i].value<<" out1 "<<out1[i].value<<"\n";
@@ -237,6 +238,7 @@ int main() {
                 for(int j=0; j<block; j++) {
                    GroupElement temp = GroupElement(0, bitlength);
                     p2.send_ge(temp, bitlength, 2); 
+                    p2.bytes_sent -= 8;
                 }
             }
             else {
@@ -254,6 +256,7 @@ int main() {
     p2.close(0);
     p2.close(1);
     p2.close(2);
+    std::cout<<"Communication for P2 bytes sent: "<<p2.bytes_sent<<"\n";
     // std::cout << "P2: Time taken for keygen + sending to P0, P1: " << duration.count()*1e-6 + duration_send.count() * 1e-6 <<"\n";
     // std::cout<< "P2: Bytes sent in offline phase: " << preprocess_comm << "\n";
 

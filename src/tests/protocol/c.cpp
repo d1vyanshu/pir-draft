@@ -11,7 +11,7 @@
 int main() {
 
     int input_size = 18;
-    int entry_size = 8192;
+    int entry_size = 40;
     int block;
 
     if(entry_size%bitlength!=0) block = entry_size/bitlength + 1;

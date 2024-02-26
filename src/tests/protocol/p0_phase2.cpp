@@ -10,7 +10,7 @@
 
 int main() {
     auto start2 = std::chrono::high_resolution_clock::now();
-    int input_size = 16;
+    int input_size = 18;
     int database_size = (1<<input_size);
     int entry_size = 40;
     int block;
@@ -83,30 +83,32 @@ int main() {
 
         //Eval All
         // uint8_t* t = (uint8_t*)malloc(database_size*sizeof(uint8_t));
-        auto start = std::chrono::high_resolution_clock::now();
+        // auto start = std::chrono::high_resolution_clock::now();
         uint8_t *t = dpfxor_eval_all(0, k0);
-        auto end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
+        // auto end = std::chrono::high_resolution_clock::now();
+        // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end-start);
 
         if(entry_size <= bitlength) {
-                auto start2 = std::chrono::high_resolution_clock::now();
+                // auto start2 = std::chrono::high_resolution_clock::now();
                 o[j] = inner_xor(database_size, indices[j], database, t);
-                auto end2 = std::chrono::high_resolution_clock::now();
-                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end2-start2);
+                // auto end2 = std::chrono::high_resolution_clock::now();
+                // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end2-start2);
                 // std::cout<<"P0 o "<<o.value<<"\n";
                 p0.send_ge(o[j], bitlength, 2);
+                p0.bytes_sent += 24;
         }
         else {
-                auto start2 = std::chrono::high_resolution_clock::now();
+                // auto start2 = std::chrono::high_resolution_clock::now();
                 
                 GroupElement* o = inner_xor_Zp(database_size, indices[j], databaseB, t, block);
                 // std::cout<<"P0: "<<o[0].value<<"\n";
                 for(int i=0; i<block; i++) {
                     p0.send_ge(o[i], bitlength, 2);
                 }
+                p0.bytes_sent += (32 - block*8);
 
-                auto end2 = std::chrono::high_resolution_clock::now();
-                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end2-start2);
+                // auto end2 = std::chrono::high_resolution_clock::now();
+                // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end2-start2);
                 
                 
         }
@@ -135,6 +137,7 @@ int main() {
             else {
                 GroupElement temp = GroupElement(0, bitlength);
                 p0.send_ge(temp, bitlength, 2);
+                p0.bytes_sent -= 8;
             }
         }
                 
@@ -144,6 +147,7 @@ int main() {
             else {
                 GroupElement temp = GroupElement(0, bitlength);
                 p0.send_ge(temp, bitlength, 3);
+                p0.bytes_sent -= 8;
             }
         }
     }
@@ -156,7 +160,7 @@ int main() {
     }
     p0.close(0);
     p0.close(1);
-
+    std::cout<<"Communication bytes sent by P0: "<<p0.bytes_sent<<"\n";
     // std::cout << "P0: Time taken for EvalAll: " << duration.count()*1e-6 <<"\n";
     // std::cout << "P0: Time taken for Offline Phase: " << (duration.count() + kgtime)*1e-6 << "\n";
    
